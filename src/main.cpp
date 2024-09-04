@@ -3,78 +3,50 @@
 #include "hardware/gpio.h"
 #include "hardware/pio.h"
 
-#include "WS2812.pio.h" // This header file gets produced during compilation from the WS2812.pio file
+#include "WS2812.pio.h"
 #include "drivers/logging/logging.h"
 
-#define LED_PIN 14
+#define LED_PIN 14  // GPIO pin connected to the WS2812 LEDs
 
-int change_led(uint8_t led_number, uint8_t color) {
-    
+// Changes the color of a specific LED in the WS2812 LED strip.
+void change_led(uint8_t led_num, uint32_t r, uint32_t g, uint32_t b) {
+    static uint32_t led_data[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};  // Array to store color data for 12 LEDs
+
+    led_data[led_num - 1] = (r << 24) | (g << 16) | (b << 8);  // Update color for the specified LED
+
+    for(int i = 0; i < 12; i++) {
+        pio_sm_put_blocking(pio0, 0, led_data[i]);  // Send color data to the PIO state machine
+    }
 }
 
-int main()
-{
-    stdio_init_all();
+// Turns off all LEDs in the WS2812 LED strip.
+void turnoff_led() {
+    for(int j = 0; j < 12; j++) {
+        pio_sm_put_blocking(pio0, 0, 0);  // Send zero value to turn off each LED
+    }
+}
 
-    // Initialise PIO0 to control the LED chain
-    uint pio_program_offset = pio_add_program(pio0, &ws2812_program);
-    ws2812_program_init(pio0, 0, pio_program_offset, LED_PIN, 800000, false);
-    static uint32_t led_data [1];
+int main() {
+    stdio_init_all();  // Initialize standard I/O
+
+    uint pio_program_offset = pio_add_program(pio0, &ws2812_program);  // Load WS2812 PIO program into PIO0
+    ws2812_program_init(pio0, 0, pio_program_offset, LED_PIN, 800000, false);  // Initialize the WS2812 program
+
+    bool led_off = true;  // Flag to determine if LEDs should be turned off
 
     for (;;) {
-        // Test the log system
-        // log(LogLevel::INFORMATION, "Hello world");
-
-        uint8_t red;
-        uint8_t green;
-        uint8_t blue;
-        
-        for(int i = 0; i < 12; i++) {
-            if(i % 2 == 0) {
-                red = 255;
-                green = 0;
-                blue = 0;
-                led_data[0] = (red << 24) | (green << 16) | (blue << 8);
-                pio_sm_put_blocking(pio0, 0, led_data[0]);
-            }
-            else{
-                red = 0;
-                green = 0;
-                blue = 255;
-                led_data[0] = (red << 24) | (green << 16) | (blue << 8);
-                pio_sm_put_blocking(pio0, 0, led_data[0]);
-            }
+        if (led_off) {
+            turnoff_led();  // Turn off all LEDs if flag is set
         }
-        sleep_ms(500);
 
+        // Set specific LEDs to desired colors
+        change_led(1, 255, 255, 255);  // Set LED 1 to white
+        change_led(3, 255, 0, 0);      // Set LED 3 to red
+        change_led(12, 0, 255, 0);     // Set LED 12 to green
+        change_led(11, 0, 255, 0);     // Set LED 11 to green
 
-        // // Turn on the first LED to be a certain colour
-        // uint8_t red = 255;
-        // uint8_t green = 0;
-        // uint8_t blue = 0;
-        // led_data[0] = (red << 24) | (green << 16) | (blue << 8);
-        // pio_sm_put_blocking(pio0, 0, led_data[0]);
-        // //sleep_ms(500);
-
-        // red = 0;
-        // green = 255;
-        // blue = 0;
-        // led_data[1] = (red << 24) | (green << 16) | (blue << 8);
-        // pio_sm_put_blocking(pio0, 0, led_data[1]);
-
-        // red = 0;
-        // green = 0;
-        // blue = 255;
-        // led_data[2] = (red << 24) | (green << 16) | (blue << 8);
-        // pio_sm_put_blocking(pio0, 0, led_data[2]);
-
-        // sleep_ms(500); //LEDs reset if it pauses for more than 200us
-
-        // // Set the first LED off 
-        // led_data[0] = 0;
-        // pio_sm_put_blocking(pio0, 0, led_data[0]);
-        // sleep_ms(500);
+        sleep_ms(500);  // Wait for 500 milliseconds
     }
 
-    return 0;
+    return 0;  // This line will never be reached due to the infinite loop
 }
