@@ -32,10 +32,12 @@ if(CrossCompiling)
         PUBLIC
         src/main.cpp
         src/drivers/logging/logging.cpp
+        src/drivers/leds.cpp
     )
     target_include_directories(labs
         PUBLIC 
         src/
+        src/drivers
     )
 
     pico_set_program_name(labs "cc3501-labs")
