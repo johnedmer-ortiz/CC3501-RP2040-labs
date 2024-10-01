@@ -1,63 +1,38 @@
-#include <stdio.h>
 #include "pico/stdlib.h"
-#include "hardware/i2c.h"
-#include "accel.h"
+#include "hardware/adc.h"
 #include "boards.h"
+#include <stdio.h>
 
-#define I2C_PORT i2c0
-#define SCL_PIN 17
-#define SDA_PIN 16
+#define MIC_PIN 26
+#define N_SAMPLES 1024
+
+
+void configure_adc_continuous() {
+    adc_init();
+
+    adc_gpio_init(MIC_PIN); 
+    adc_select_input(0);  // ADC input 0 corresponds to GPIO26 (MIC_PIN)
+
+    adc_fifo_setup(
+        true,   // Enable FIFO
+        false,  // Do not shift to 8 bits, keep full 12-bit resolution
+        0,      // Number of samples to trigger an interrupt (1 sample)
+        false,  // Disable overwriting when FIFO is full
+        false   // No DMA data request
+    );
+
+    adc_set_clkdiv(1087);  // Set clock divider for desired sample rate (~1 kHz)
+
+    adc_run(true);  // Start ADC
+}
 
 int main() {
     stdio_init_all();
-    // Initialize I2C and accelerometer
-    i2c_init(I2C_PORT, 400 * 1000);
-    gpio_set_function(SCL_PIN, GPIO_FUNC_I2C);
-    gpio_set_function(SDA_PIN, GPIO_FUNC_I2C);
-    gpio_pull_up(SCL_PIN);
-    gpio_pull_up(SDA_PIN);
-    accel_init(I2C_PORT);
+    configure_adc_continuous();
+    uint16_t sample_buf[N_SAMPLES];
 
-    while (1) {
-        accel_data_t accel_data;
-        accel_read(&accel_data);
-        float x_mps2, y_mps2, z_mps2;
-        convert_to_mps2(&accel_data, &x_mps2, &y_mps2, &z_mps2);
-        printf("X: %.2f m/s^2, Y: %.2f m/s^2, Z: %.2f m/s^2\n", x_mps2, y_mps2, z_mps2);
-        sleep_ms(50);
+    for (size_t i = 0; i < N_SAMPLES; i = i + 1){
+        sample_buf[i] = adc_fifo_get_blocking();
+        printf("Reading: %d\n", sample_buf[i]);
     }
-
-    return 0;
 }
-
-
-/*WHO_AM_I register reading test */
-//#define WHO_AM_I_REG 0x0F
-
-// void i2c_read_register(uint8_t addr, uint8_t reg, uint8_t *buf, uint8_t nbytes) {
-//     i2c_write_blocking(I2C_PORT, addr, &reg, 1, true); // Send register address
-//     i2c_read_blocking(I2C_PORT, addr, buf, nbytes, false); // Read nbytes into buffer
-// }
-
-// int main() {
-//     // Initialize chosen serial port
-//     stdio_init_all();
-
-//     // Initialize I2C
-//     i2c_init(I2C_PORT, 100 * 1000); // 100kHz I2C frequency
-//     gpio_set_function(SCL_PIN, GPIO_FUNC_I2C);
-//     gpio_set_function(SDA_PIN, GPIO_FUNC_I2C);
-//     gpio_pull_up(SCL_PIN);
-//     gpio_pull_up(SDA_PIN);
-
-//     uint8_t who_am_i = 0;
-    
-//     // Read WHO_AM_I register
-//     i2c_read_register(LIS3DH_ADDRESS, WHO_AM_I_REG, &who_am_i, 1);
-
-//     // Print WHO_AM_I value
-//     printf("WHO_AM_I register: 0x%02X\n", who_am_i);
-
-//     return 0;
-// }
-///////////////////////////////////////////////////////////////////

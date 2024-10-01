@@ -34,6 +34,7 @@ if(CrossCompiling)
         src/drivers/logging/logging.cpp
         src/drivers/leds.cpp
         src/drivers/accel.cpp
+        src/drivers/microphone.cpp
     )
     target_include_directories(labs
         PUBLIC 
@@ -63,6 +64,7 @@ if(CrossCompiling)
         hardware_watchdog
         hardware_clocks
         hardware_pwm
+        hardware_adc
     )
 
     pico_add_extra_outputs(labs)
