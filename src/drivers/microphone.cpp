@@ -56,3 +56,13 @@ void process_samples(uint16_t *sample_buf, int16_t *processed_buf, int n_samples
     }
     printf("\n");
 }
+
+void window_samples(int16_t *processed_buf, int16_t *window, int16_t *windowed_buf, int n_samples, int shift_amount)
+{
+    printf("\n***Windowed samples***\n");
+    for (int i = 0; i < n_samples; i++)
+    {
+        windowed_buf[i] = (window[i] * processed_buf[i]) << shift_amount;
+        printf("%d, ", windowed_buf[i]);
+    }
+}
