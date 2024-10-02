@@ -84,7 +84,7 @@ void perform_fft(int16_t *fft_output, int16_t *windowed_buf, int n_samples)
 void calc_mag_squared(int16_t *magnitude_squared, int16_t *fft_output, int n_samples)
 {
     arm_cmplx_mag_squared_q15(fft_output, magnitude_squared, n_samples / 2);
-    printf("***Magnitude squared***");
+    printf("\n\n***Magnitude squared***\n");
     for (int i = 0; i < n_samples / 2; i++)
     {
         printf("%d, ", magnitude_squared[i]);
