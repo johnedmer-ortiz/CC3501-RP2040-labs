@@ -1,6 +1,7 @@
 #include "pico/stdlib.h"
 #include "hardware/adc.h"
 #include "boards.h"
+#include "arm_math.h"
 #include <stdio.h>
 
 void configure_adc_continuous(int mic_pin)
@@ -65,4 +66,22 @@ void window_samples(int16_t *processed_buf, int16_t *window, int16_t *windowed_b
         windowed_buf[i] = (window[i] * processed_buf[i]) << shift_amount;
         printf("%d, ", windowed_buf[i]);
     }
+}
+
+void perform_fft(int16_t *fft_output, int16_t *windowed_buf, int n_samples)
+{
+    int fft_dir = 0; // 0 for forward transform, 1 for inverse transform
+    arm_rfft_instance_q15 fft_instance;
+    arm_rfft_init_q15(&fft_instance, n_samples, fft_dir, 1);
+    arm_rfft_q15(&fft_instance, windowed_buf, fft_output);
+    printf("\n\n***FFT output***\n");
+    for (int i = 0; i < 1024; i++)
+    {
+        printf("%d, ", windowed_buf[i]);
+    }
+}
+
+void calc_mag_squared(int16_t *magnitude_squared, int16_t *fft_output, int n_samples)
+{
+    arm_cmplx_mag_squared_q15(fft_output, magnitude_squared, n_samples / 2);
 }
