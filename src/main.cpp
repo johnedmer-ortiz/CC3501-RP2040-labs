@@ -2,6 +2,7 @@
 #include "hardware/adc.h"
 #include "boards.h"
 #include "microphone.h"
+#include "leds.h"
 #include <stdio.h>
 
 #define MIC_PIN 26
@@ -77,6 +78,7 @@ int main()
 {
     stdio_init_all();
     configure_adc_continuous(MIC_PIN);
+    init_leds();
 
     uint16_t sample_buf[N_SAMPLES];
     int16_t processed_buf[N_SAMPLES];
@@ -84,9 +86,74 @@ int main()
     int16_t fft_output[N_SAMPLES];
     int16_t magnitude_squared[N_SAMPLES / 2]; // Buffer for magnitude squared results
 
-    mic_read(sample_buf, N_SAMPLES);                                               // get mic samples and stores it in sample_buf
-    process_samples(sample_buf, processed_buf, N_SAMPLES, SHIFT_AMOUNT);           // process sample_buf and store it in processed_buf
-    window_samples(processed_buf, hanning, windowed_buf, N_SAMPLES, SHIFT_AMOUNT); // apply window function to processed samples and store it in windowed_buf
-    perform_fft(fft_output, windowed_buf, N_SAMPLES);                              // apply FFT to the windowed samples and store it in fft_output
-    calc_mag_squared(magnitude_squared, fft_output, N_SAMPLES);
+    // Define bin boundaries for LEDs
+    int bin_boundaries[] = {6, 8, 11, 16, 24, 35, 51, 75, 110, 161, 237, 349, 513};
+
+    // Define minimum and maximum expected energy sums
+    uint32_t min_energy = 0;      // Minimum possible energy sum
+    uint32_t max_energy = 1000; // Maximum expected energy sum (adjust based on observations)
+
+    while (1)
+    {
+        // Read samples from microphone
+        mic_read(sample_buf, N_SAMPLES);
+
+        // Process samples
+        process_samples(sample_buf, processed_buf, N_SAMPLES, SHIFT_AMOUNT);
+
+        // Apply window function
+        window_samples(processed_buf, hanning, windowed_buf, N_SAMPLES, SHIFT_AMOUNT);
+
+        // Perform FFT
+        perform_fft(fft_output, windowed_buf, N_SAMPLES);
+
+        // Calculate magnitude squared
+        calc_mag_squared(magnitude_squared, fft_output, N_SAMPLES);
+
+        // Display results on LEDs
+        for (int led_num = 0; led_num < 12; led_num++)
+        {
+            int bin_start = bin_boundaries[led_num];
+            int bin_end = bin_boundaries[led_num + 1]; // Exclusive upper bound
+
+            uint32_t energy_sum = 0;
+
+            // Sum the energy in the specified bins
+            for (int i = bin_start; i < bin_end; i++)
+            {
+                energy_sum += magnitude_squared[i];
+            }
+
+            // After calculating energy_sum for each LED
+            printf("LED %d Energy Sum: %lu\n", led_num + 1, energy_sum);
+
+            // Linear mapping of energy_sum to brightness (0-255)
+            uint8_t brightness;
+
+            if (energy_sum <= min_energy)
+            {
+                brightness = 0;
+            }
+            else if (energy_sum >= max_energy)
+            {
+                brightness = 255;
+            }
+            else
+            {
+                // Map energy_sum linearly from [min_energy, max_energy] to [0, 255]
+                brightness = (uint8_t)(((energy_sum - min_energy) * 255) / (max_energy - min_energy));
+            }
+
+            // Set the LED brightness
+            change_led(led_num + 1, brightness, 0, 0); // Set LED color with brightness level
+        }
+
+        // Commit LED changes
+        commit_led_changes();
+
+        // Optional delay to control the update rate
+        sleep_ms(50); // Adjust as needed
+    }
+
+    return 0;
 }
