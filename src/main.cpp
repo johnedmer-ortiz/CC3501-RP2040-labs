@@ -90,7 +90,7 @@ int main()
     int bin_boundaries[] = {6, 8, 11, 16, 24, 35, 51, 75, 110, 161, 237, 349, 513};
 
     // Define minimum and maximum expected energy sums
-    uint32_t min_energy = 0;      // Minimum possible energy sum
+    uint32_t min_energy = 0;    // Minimum possible energy sum
     uint32_t max_energy = 1000; // Maximum expected energy sum (adjust based on observations)
 
     while (1)
@@ -107,7 +107,7 @@ int main()
         // Perform FFT
         perform_fft(fft_output, windowed_buf, N_SAMPLES);
 
-        // Calculate magnitude squared
+        // Calculate magnitude squared. Note that the output array has half the length of the original, this is because the output is a complex array, but only using real part
         calc_mag_squared(magnitude_squared, fft_output, N_SAMPLES);
 
         // Display results on LEDs
