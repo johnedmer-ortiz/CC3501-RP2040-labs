@@ -56,6 +56,8 @@ if(CrossCompiling)
         src/drivers/leds.cpp
         src/drivers/accel.cpp
         src/drivers/microphone.cpp
+        src/drivers/accel_task.cpp
+        src/drivers/microphone_task.cpp
     )
     target_include_directories(labs
         PUBLIC 
